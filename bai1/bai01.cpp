@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-
+#include <chrono>
 
 std::string readFile(const std::string& filename) {
   std::string line;
@@ -18,6 +18,15 @@ std::string readFile(const std::string& filename) {
   }
 
   std::getline(file, line);
+
+  // Remove trailing whitespace (space, tab, etc.)
+  size_t end = line.find_last_not_of(" \t\r\n");
+  if (end != std::string::npos) {
+    line.erase(end + 1);
+  } else {
+    line.clear(); // all whitespace
+  }
+
   std::cout << "File read successfully" << std::endl;
   return line;
 }
@@ -130,9 +139,7 @@ struct BigInt {
   }
 };
 
-BigInt mod_pow_montgomery(BigInt base, BigInt exp, const BigInt &mod);
-
-// ADDITION 
+// ADDITION
 BigInt add_bigint(const BigInt &a, const BigInt &b) {
     BigInt r;
     size_t k = std::max(a.limbs.size(), b.limbs.size());
@@ -194,6 +201,8 @@ BigInt mod_pow(BigInt base, BigInt exp, const BigInt& mod) {
   return result;
 }
 
+BigInt mod_pow_montgomery(BigInt base, BigInt exp, const BigInt &mod);
+
 bool miller_rabin(const BigInt& n, int k) {
   if (n.is_even() || n == BigInt::one()) return false;
 
@@ -225,6 +234,7 @@ bool miller_rabin(const BigInt& n, int k) {
 
 BigInt compute_R2_mod(const BigInt &n) {
     size_t k = n.limbs.size();
+    BigInt r = BigInt::one();        
     size_t total_bits = 64 * k * 2;  // R^2 = 2^(64*2*k)
     for (size_t i = 0; i < total_bits; ++i) {
         // r = (r + r) mod n
@@ -279,7 +289,7 @@ BigInt montgomery_mul(const BigInt &a, const BigInt &b, const MontgomeryContext 
       carry = cur >> 64;
     }
     t.limbs[i + k] += (uint64_t)carry;
-  
+  }
 
   //montgomery reducction
   for (size_t i = 0; i < k; ++i){
@@ -342,8 +352,15 @@ void makeOutputFile(std::string filename, bool result) {
 int main() {
   std::string hexN = readFile("./project_01_01/test_19.inp");
   BigInt n = fromHex(hexN);
+
+  auto start_time = std::chrono::high_resolution_clock::now();
   bool is_prime = miller_rabin(n, 20);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> duration = end_time - start_time;
+
+
   makeOutputFile("output.txt", is_prime);
-  std::cout << "Number is " << (is_prime ? "prime" : "not prime") << std::endl;
+  std::cout << "Number is " << (is_prime ? "prime" : "composite") << std::endl;
+  std::cout << "Time: " << duration.count() << "ms\n";
   return 0;
 }
